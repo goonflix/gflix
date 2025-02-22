@@ -25,7 +25,13 @@ export interface ScrapingSegment {
   name: string;
   id: string;
   embedId?: string;
-  status: "failure" | "pending" | "notfound" | "success" | "waiting";
+  status:
+    | "failure"
+    | "pending"
+    | "notfound"
+    | "success"
+    | "waiting"
+    | "skipped";
   reason?: string;
   error?: any;
   percentage: number;
@@ -40,6 +46,11 @@ function useBaseScrape() {
   const [sourceOrder, setSourceOrder] = useState<ScrapingItems[]>([]);
   const [currentSource, setCurrentSource] = useState<string>();
   const lastId = useRef<string | null>(null);
+  const skipRef = useRef<(() => void) | null>(null);
+
+  const skipCurrent = useCallback(() => {
+    if (skipRef.current) skipRef.current();
+  }, []);
 
   const initEvent = useCallback((evt: ScraperEvent<"init">) => {
     setSources(
@@ -118,6 +129,7 @@ function useBaseScrape() {
 
   const startScrape = useCallback(() => {
     lastId.current = null;
+    skipRef.current = null;
   }, []);
 
   const getResult = useCallback((output: RunOutput | null) => {
@@ -141,6 +153,8 @@ function useBaseScrape() {
     sources,
     sourceOrder,
     currentSource,
+    skipCurrent,
+    skipRef,
   };
 }
 
@@ -155,6 +169,8 @@ export function useScrape() {
     getResult,
     startEvent,
     startScrape,
+    skipCurrent,
+    skipRef,
   } = useBaseScrape();
 
   const preferredSourceOrder = usePreferencesStore((s) => s.sourceOrder);
@@ -166,6 +182,7 @@ export function useScrape() {
       if (providerApiUrl && !isExtensionActiveCached()) {
         startScrape();
         const baseUrlMaker = makeProviderUrl(providerApiUrl);
+        const eventSource = new EventSource(baseUrlMaker.scrapeAll(media));
         const conn = await connectServerSideEvents<RunOutput | "">(
           baseUrlMaker.scrapeAll(media),
           ["completed", "noOutput"],
@@ -174,6 +191,10 @@ export function useScrape() {
         conn.on("start", startEvent);
         conn.on("update", updateEvent);
         conn.on("discoverEmbeds", discoverEmbedsEvent);
+        // Add skip handler for SSE
+        skipRef.current = () => {
+          eventSource.close();
+        };
         const sseOutput = await conn.promise();
         if (sseOutput && isExtensionActiveCached())
           await prepareStream(sseOutput.stream);
@@ -192,7 +213,10 @@ export function useScrape() {
           start: startEvent,
           update: updateEvent,
           discoverEmbeds: discoverEmbedsEvent,
-        },
+          skipCurrent: (fn: () => void) => {
+            skipRef.current = fn;
+          },
+        } as FullScraperEvents,
       });
       if (output && isExtensionActiveCached())
         await prepareStream(output.stream);
@@ -207,6 +231,7 @@ export function useScrape() {
       startScrape,
       preferredSourceOrder,
       enableSourceOrder,
+      skipRef,
     ],
   );
 
@@ -215,6 +240,7 @@ export function useScrape() {
     sourceOrder,
     sources,
     currentSource,
+    skipCurrent,
   };
 }
 
