@@ -59,21 +59,23 @@ export function ScrapeItem(props: ScrapeItemProps) {
           }
         >
           {props.name}
+          {props.status === "pending" && (
+            <button
+              type="button"
+              className="text-white hover:text-white/80 bg-video-scraping-card hover:bg-video-scraping-card/80 text-sm rounded-md px-3 py-1 ml-3 transition-colors"
+              onClick={() => {
+                if (props.skipCurrent) props.skipCurrent();
+              }}
+            >
+              Skip
+            </button>
+          )}
         </p>
         <Transition animation="fade" show={!!text}>
           <p className="text-[15px] mt-1">{text ? t(text) : ""}</p>
         </Transition>
         {props.children}
       </div>
-      {props.status === "pending" && (
-        <button
-          type="button"
-          className="text-type-secondary"
-          onClick={() => props.skipCurrent?.()}
-        >
-          <p>Skip</p>
-        </button>
-      )}
     </div>
   );
 }

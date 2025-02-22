@@ -35,7 +35,8 @@ export interface ScrapingProps {
 
 export function ScrapingPart(props: ScrapingProps) {
   const { report } = useReportProviders();
-  const { startScraping, sourceOrder, sources, currentSource } = useScrape();
+  const { startScraping, sourceOrder, sources, currentSource, skipCurrent } =
+    useScrape();
   const isMounted = useMountedState();
   const { t } = useTranslation();
 
@@ -128,6 +129,7 @@ export function ScrapingPart(props: ScrapingProps) {
                 status={source.status}
                 hasChildren={order.children.length > 0}
                 percentage={source.percentage}
+                skipCurrent={skipCurrent}
               >
                 <div
                   className={classNames({
@@ -142,6 +144,7 @@ export function ScrapingPart(props: ScrapingProps) {
                         name={embed.name}
                         status={embed.status}
                         percentage={embed.percentage}
+                        skipCurrent={skipCurrent}
                         key={embedId}
                       />
                     );

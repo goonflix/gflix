@@ -65,6 +65,7 @@ const segmentStatusMap: Record<
   failure: "failed",
   pending: null,
   waiting: null,
+  skipped: null,
 };
 
 export function scrapeSourceOutputToProviderMetric(
